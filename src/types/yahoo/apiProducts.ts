@@ -46,6 +46,15 @@ export class apiProducts {
     private _delivery: Array<Delivery>
   ) {}
 
+  /**
+   * 説明文をフォーマットする
+   */
+  get formatDescription(): string {
+    const str = this._description;
+    const formatDescription = str.replace("<br>", "\n");
+    return formatDescription;
+  }
+
   public get index(): number {
     return this._index;
   }
