@@ -1,0 +1,37 @@
+<mxfile host="65bd71144e">
+    <diagram id="e20ZoJ16_vFbPC2Mm6Gv" name="ページ1">
+        <mxGraphModel dx="710" dy="808" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="ProductList.vue" style="swimlane;" vertex="1" parent="1">
+                    <mxGeometry x="90" y="320" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="+searchProducts:void&lt;br&gt;+getProductList:async&lt;br&gt;+filterProducts:void" style="whiteSpace=wrap;html=1;" vertex="1" parent="2">
+                    <mxGeometry y="140" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="+ ProductList:Array&amp;lt;Product&amp;gt;&lt;br&gt;+searchProductString:string&lt;br&gt;+filterProducts:string" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="2">
+                    <mxGeometry x="15" y="30" width="170" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Product" style="swimlane;" vertex="1" parent="1">
+                    <mxGeometry x="350" y="420" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="getter/setter" style="whiteSpace=wrap;html=1;" vertex="1" parent="6">
+                    <mxGeometry y="140" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="+id:number&lt;br&gt;+name;string&lt;br&gt;+image:image&lt;br&gt;+genre:string&lt;br&gt;+price:number&lt;br&gt;+quantity:number&lt;br&gt;+releasedDate:Date" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="6">
+                    <mxGeometry x="40" y="30" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Vueストア" style="swimlane;" vertex="1" parent="1">
+                    <mxGeometry x="360" y="140" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="+getsearchedProductList(state)" style="whiteSpace=wrap;html=1;" vertex="1" parent="9">
+                    <mxGeometry y="140" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="+ProductList:new Array&amp;lt;Product&amp;gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="9">
+                    <mxGeometry x="5" y="70" width="190" height="20" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
