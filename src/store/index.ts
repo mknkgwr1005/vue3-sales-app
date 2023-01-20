@@ -7,15 +7,74 @@ import { reactive } from "vue";
 const state = reactive({
   inputValue: "",
   searchOption: "",
-  options: "",
-  totalPageNum: 0,
-  results: "表示数",
-  start: 0,
+  options: new Array<string>(),
   totalProductsNum: 0,
+  totalPageNum: 1,
+  productsPerPage: 0,
+  currentPageNum: 1,
+  oldPageNum: 0,
+  results: 0,
+  start: 1,
   productList: new Array<apiProducts>(),
   rktProductList: new Array<rktProducts>(),
 });
-const getters = {};
+const actions = {
+  /**
+   *  yahooの商品を取得する
+   * @param context -state
+   */
+  async getProductList(context: any) {
+    state.rktProductList = [];
+    state.options = [];
+
+    if (state.results !== 0) {
+      state.productsPerPage = state.results;
+      state.options.push("&results=", String(state.results));
+    }
+    if (state.currentPageNum !== 1) {
+      context.commit("goToNextPage");
+    }
+    const formatOptions = state.options.join("");
+
+    const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+    try {
+      const response = await axios.get(
+        "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
+          appId +
+          "&query=" +
+          state.inputValue +
+          formatOptions
+      );
+      const payload = response.data;
+      // 商品を表示させる
+      context.commit("showProductList", payload.hits);
+      // 商品を取得したら、ページ数とヒット数を表示する
+      context.commit("handlePageNum", payload);
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  },
+  /**
+   * 楽天の商品を取得する
+   * @param context
+   */
+  async getRktProductList(context: any) {
+    state.productList = [];
+    const appId = "1047939681842243304";
+    try {
+      const response = await axios.get(
+        "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=" +
+          appId +
+          "&keyword=" +
+          state.inputValue
+      );
+      const payload = response.data.Items;
+      context.commit("showRktProductList", payload);
+    } catch (err: any) {
+      console.log(err);
+    }
+  },
+};
 const mutations = {
   /**
    * yahooの商品を表示するメソッド
@@ -109,59 +168,34 @@ const mutations = {
       );
     }
   },
-};
-const actions = {
   /**
-   *  yahooの商品を取得する
-   * @param context -state
+   * ページ数と商品数の表示
+   * @param state
+   * @param payload
    */
-  async getProductList(context: any) {
-    state.rktProductList = [];
-    if (state.results !== "表示数") {
-      console.log(state.results);
-
-      state.options = "&results=" + state.results;
-    }
-
-    const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
-    try {
-      const response = await axios.get(
-        "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
-          appId +
-          "&query=" +
-          state.inputValue +
-          state.options
-        // +
-        // "&start=" +
-        // state.start
-      );
-      const payload = response.data.hits;
-      console.log(payload);
-
-      context.commit("showProductList", payload);
-    } catch (err: any) {
-      console.log(err.message);
+  handlePageNum(state: any, payload: any) {
+    // 総商品数
+    const apiProductHit = payload.totalResultsAvailable;
+    state.totalProductsNum = apiProductHit;
+    // 表示件数
+    if (state.results === 0) {
+      const totalResults = payload.totalResultsReturned;
+      state.results = totalResults;
+      state.productsPerPage = totalResults;
+      // 総ページ数
+      state.totalPageNum = Math.ceil(apiProductHit / totalResults);
     }
   },
-  async getRktProductList(context: any) {
-    state.productList = [];
-    const appId = "1047939681842243304";
-    try {
-      const response = await axios.get(
-        "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=" +
-          appId +
-          "&keyword=" +
-          state.inputValue
-      );
-      const payload = response.data.Items;
-      console.log(payload);
-
-      context.commit("showRktProductList", payload);
-    } catch (err: any) {
-      console.log(err);
-    }
+  goToNextPage(state: any, payload: any) {
+    let lastIndex = 0;
+    lastIndex = state.currentPageNum * state.results - 1;
+    state.start = lastIndex;
+    state.options.push("&start=", String(state.start));
+    console.log("start", state.start);
   },
 };
+const getters = {};
+
 const modules = {};
 
 export default createStore({

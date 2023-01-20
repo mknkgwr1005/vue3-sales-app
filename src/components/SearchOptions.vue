@@ -1,20 +1,17 @@
 <template>
   <div>
     <div>
-      <div class="form-floating">
-        <select
-          class="form-select"
-          id="floatingSelect"
-          aria-label="Floating label select example"
+      <b-form inline>
+        <b-form-select
+          id="inline-form-custom-select-pref"
+          class="mb-2 mr-sm-2 mb-sm-0"
+          :options="displayData"
+          :value="0"
           v-model="store.state.results"
-        >
-          <option selected>表示数</option>
-          <option value="5">5件</option>
-          <option value="10">10件</option>
-          <option value="15">15件</option>
-          <option value="20">20件</option>
-        </select>
-      </div>
+        ></b-form-select>
+      </b-form>
+      {{ store.state.productsPerPage }}件表示
+      {{ store.state.totalProductsNum }}件ヒット
     </div>
   </div>
 </template>
@@ -37,6 +34,15 @@ export default defineComponent({
         return;
       }
     };
+
+    store.watch(
+      (state, getters) => state.results,
+      (val, oldVal) => {
+        if (val) {
+          store.state.currentPageNum = 1;
+        }
+      }
+    );
     return {
       searchProducts,
     };
@@ -44,6 +50,13 @@ export default defineComponent({
   data() {
     return {
       store,
+      displayData: [
+        { text: "表示数", value: 0 },
+        { text: "5件", value: 5 },
+        { text: "10件", value: 10 },
+        { text: "15件", value: 15 },
+        { text: "20件", value: 20 },
+      ],
     };
   },
 });

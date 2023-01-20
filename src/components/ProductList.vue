@@ -64,6 +64,17 @@
         </div>
       </div>
     </div>
+    <div class="overflow-auto">
+      <div class="mt-3">
+        <b-pagination
+          v-model="store.state.currentPageNum"
+          pills
+          :total-rows="store.state.totalPageNum"
+          @click="handlePage"
+          align="center"
+        ></b-pagination>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -83,6 +94,7 @@ export default defineComponent({
     TopMenu,
   },
   setup() {
+    let stateOldPage = 0;
     // 商品を定期的に探す
     const setQuickAnnouncement = async () => {
       console.log("hello");
@@ -97,11 +109,22 @@ export default defineComponent({
     const goToUrl = (url: any) => {
       window.location.href = url;
     };
+    const handlePage = async () => {
+      store.state.oldPageNum = stateOldPage;
+      await store.dispatch("getProductList");
+    };
+    store.watch(
+      (state, getters) => state.currentPageNum,
+      (val, oldVal) => {
+        stateOldPage = oldVal;
+      }
+    );
 
     return {
       // searchProducts,
       goToUrl,
       setQuickAnnouncement,
+      handlePage,
     };
 
     // 文章を変換する
