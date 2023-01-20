@@ -36,8 +36,8 @@ export default defineComponent({
     };
 
     store.watch(
-      (state, getters) => state.results,
-      (val, oldVal) => {
+      (state) => state.results,
+      (val) => {
         if (val) {
           store.state.currentPageNum = 1;
         }

@@ -79,7 +79,6 @@
 </template>
 
 <script lang="ts">
-import RegisterProductsVue from "@/views/RegisterProducts.vue";
 import { defineComponent } from "vue";
 import TopMenu from "./TopMenu.vue";
 import store from "../store/index";
@@ -106,7 +105,7 @@ export default defineComponent({
       }
     };
     // 外部URLに遷移する
-    const goToUrl = (url: any) => {
+    const goToUrl = (url: string) => {
       window.location.href = url;
     };
     const handlePage = async () => {
@@ -114,7 +113,7 @@ export default defineComponent({
       await store.dispatch("getProductList");
     };
     store.watch(
-      (state, getters) => state.currentPageNum,
+      (state) => state.currentPageNum,
       (val, oldVal) => {
         stateOldPage = oldVal;
       }
