@@ -46,7 +46,12 @@
         </div>
       </div>
     </nav>
-    <search-options v-if="store.state.productList.length !== 0" />
+    <search-options
+      v-if="
+        store.state.productList.length !== 0 ||
+        store.state.rktProductList.length !== 0
+      "
+    />
   </div>
 </template>
 

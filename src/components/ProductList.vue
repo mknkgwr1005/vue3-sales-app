@@ -68,8 +68,10 @@
       <div class="mt-3">
         <b-pagination
           v-model="store.state.currentPageNum"
-          pills
           :total-rows="store.state.totalPageNum"
+          :limit="10"
+          :first-number="true"
+          :last-number="true"
           @click="handlePage"
           align="center"
         ></b-pagination>
@@ -93,7 +95,6 @@ export default defineComponent({
     TopMenu,
   },
   setup() {
-    let stateOldPage = 0;
     // 商品を定期的に探す
     const setQuickAnnouncement = async () => {
       console.log("hello");
@@ -109,15 +110,12 @@ export default defineComponent({
       window.location.href = url;
     };
     const handlePage = async () => {
-      store.state.oldPageNum = stateOldPage;
-      await store.dispatch("getProductList");
-    };
-    store.watch(
-      (state) => state.currentPageNum,
-      (val, oldVal) => {
-        stateOldPage = oldVal;
+      if (store.state.searchOption === "yahoo") {
+        await store.dispatch("getProductList");
+      } else {
+        await store.dispatch("getRktProductList");
       }
-    );
+    };
 
     return {
       // searchProducts,

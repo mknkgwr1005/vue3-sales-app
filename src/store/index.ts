@@ -12,8 +12,7 @@ const state = reactive({
   totalPageNum: 1,
   productsPerPage: 0,
   currentPageNum: 1,
-  oldPageNum: 0,
-  results: 0,
+  results: 20,
   start: 1,
   productList: new Array<apiProducts>(),
   rktProductList: new Array<rktProducts>(),
@@ -24,6 +23,7 @@ const actions = {
    * @param context -state
    */
   async getProductList(context: any) {
+    state.currentPageNum = 1;
     state.rktProductList = [];
     state.options = [];
 
@@ -59,17 +59,33 @@ const actions = {
    * @param context
    */
   async getRktProductList(context: any) {
+    state.currentPageNum = 1;
     state.productList = [];
+    state.options = [];
+
+    if (state.results !== 0) {
+      state.productsPerPage = state.results;
+      state.options.push("&hits=", String(state.results));
+    }
+    if (state.currentPageNum !== 1) {
+      context.commit("goToNextPage");
+    }
+    const formatOptions = state.options.join("");
+
     const appId = "1047939681842243304";
     try {
       const response = await axios.get(
         "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=" +
           appId +
           "&keyword=" +
-          state.inputValue
+          state.inputValue +
+          formatOptions
       );
-      const payload = response.data.Items;
-      context.commit("showRktProductList", payload);
+      const payload = response.data;
+      console.log("payload", payload);
+
+      context.commit("showRktProductList", payload.Items);
+      context.commit("handlePageNum", payload);
     } catch (err: any) {
       console.log(err);
     }
@@ -174,24 +190,44 @@ const mutations = {
    * @param payload
    */
   handlePageNum(state: any, payload: any) {
-    // 総商品数
-    const apiProductHit = payload.totalResultsAvailable;
-    state.totalProductsNum = apiProductHit;
-    // 表示件数
-    if (state.results === 0) {
-      const totalResults = payload.totalResultsReturned;
-      state.results = totalResults;
+    if (state.searchOption === "yahoo") {
+      // 総商品数
+      const apiProductHit = payload.totalResultsAvailable;
+      state.totalProductsNum = apiProductHit;
+      // 表示件数
+      const totalResults = state.results;
       state.productsPerPage = totalResults;
       // 総ページ数
-      state.totalPageNum = Math.ceil(apiProductHit / totalResults);
+      state.totalPageNum = Math.ceil(state.totalProductsNum / totalResults);
+    } else if (state.searchOption === "rakuten") {
+      // 総商品数
+      const rktTotalProduct = payload.count;
+      state.totalProductsNum = rktTotalProduct;
+      // 表示件数
+      const totalResults = state.results;
+      state.productsPerPage = totalResults;
+      // 総ページ数
+      state.totalPageNum = Math.ceil(state.totalProductsNum / totalResults);
+      console.log("pageTotal", state.totalPageNum);
+    } else {
+      return;
     }
   },
-  goToNextPage(state: any, payload: any) {
-    let lastIndex = 0;
-    lastIndex = state.currentPageNum * state.results - 1;
-    state.start = lastIndex;
-    state.options.push("&start=", String(state.start));
-    console.log("start", state.start);
+  /**
+   * 次のページに行く
+   * @param state
+   * @param payload
+   */
+  goToNextPage(state: any) {
+    if (state.searchOption === "yahoo") {
+      let lastIndex = 0;
+      lastIndex = state.currentPageNum * state.results - 1;
+      state.start = lastIndex;
+      state.options.push("&start=", String(state.start));
+      console.log("start", state.start);
+    } else if (state.searchOption === "rakuten") {
+      state.options.push("&page=", String(state.currentPageNum));
+    }
   },
 };
 const getters = {};

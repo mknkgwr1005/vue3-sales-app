@@ -6,7 +6,6 @@
           id="inline-form-custom-select-pref"
           class="mb-2 mr-sm-2 mb-sm-0"
           :options="displayData"
-          :value="0"
           v-model="store.state.results"
         ></b-form-select>
       </b-form>
