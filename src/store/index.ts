@@ -23,7 +23,6 @@ const actions = {
    * @param context -state
    */
   async getProductList(context: any) {
-    state.currentPageNum = 1;
     state.rktProductList = [];
     state.options = [];
 
@@ -59,7 +58,6 @@ const actions = {
    * @param context
    */
   async getRktProductList(context: any) {
-    state.currentPageNum = 1;
     state.productList = [];
     state.options = [];
 
