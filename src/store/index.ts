@@ -1,5 +1,5 @@
 import { apiProducts } from "@/types/yahoo/apiProducts";
-import { createStore } from "vuex";
+import { createStore, storeKey } from "vuex";
 import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
@@ -14,8 +14,24 @@ const state = reactive({
   currentPageNum: 1,
   results: 20,
   start: 1,
+  filterOn: false,
   productList: new Array<apiProducts>(),
   rktProductList: new Array<rktProducts>(),
+  displayData: [
+    { text: "表示数", value: 0 },
+    { text: "5件", value: 5 },
+    { text: "10件", value: 10 },
+    { text: "15件", value: 15 },
+    { text: "20件", value: 20 },
+  ],
+  changeOrderData: [
+    { text: "並び替え", value: "title" },
+    { text: "おすすめ", value: "reccomend" },
+    { text: "レビューが多い順", value: "popular" },
+    { text: "価格が安い順", value: "cheapest" },
+    { text: "価格が高い順", value: "expensive" },
+  ],
+  sort: "",
 });
 const actions = {
   /**
@@ -25,6 +41,20 @@ const actions = {
   async getProductList(context: any) {
     state.rktProductList = [];
     state.options = [];
+    const stateSort = state.sort;
+    let sortOptions = "";
+
+    if (stateSort.length !== 0) {
+      if (stateSort === "reccomend") {
+        sortOptions = "&sort=" + "-score";
+      } else if (stateSort === "popular") {
+        sortOptions = "&sort=" + "-review_count";
+      } else if (stateSort === "cheapest") {
+        sortOptions = "&sort=" + "%2B" + "price";
+      } else if (stateSort === "expensive") {
+        sortOptions = "&sort=-price";
+      }
+    }
 
     if (state.results !== 0) {
       state.productsPerPage = state.results;
@@ -42,7 +72,8 @@ const actions = {
           appId +
           "&query=" +
           state.inputValue +
-          formatOptions
+          formatOptions +
+          sortOptions
       );
       const payload = response.data;
       // 商品を表示させる
@@ -60,7 +91,20 @@ const actions = {
   async getRktProductList(context: any) {
     state.productList = [];
     state.options = [];
+    const stateSort = state.sort;
+    let sortOptions = "";
 
+    if (stateSort.length !== 0) {
+      if (stateSort === "reccomend") {
+        sortOptions = "&sort=" + "-reviewAverage";
+      } else if (stateSort === "popular") {
+        sortOptions = "&sort=" + "-reviewCount";
+      } else if (stateSort === "cheapest") {
+        sortOptions = "&sort=" + "%2B" + "itemPrice";
+      } else if (stateSort === "expensive") {
+        sortOptions = "&sort=-itemPrice";
+      }
+    }
     if (state.results !== 0) {
       state.productsPerPage = state.results;
       state.options.push("&hits=", String(state.results));
@@ -77,7 +121,8 @@ const actions = {
           appId +
           "&keyword=" +
           state.inputValue +
-          formatOptions
+          formatOptions +
+          sortOptions
       );
       const payload = response.data;
       console.log("payload", payload);
@@ -226,6 +271,13 @@ const mutations = {
     } else if (state.searchOption === "rakuten") {
       state.options.push("&page=", String(state.currentPageNum));
     }
+  },
+  /**
+   * フィルター機能をONにする
+   * @param state
+   */
+  setFilterOn(state: any) {
+    state.filterOn = true;
   },
 };
 const getters = {};

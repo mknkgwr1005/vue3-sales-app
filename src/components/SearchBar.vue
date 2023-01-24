@@ -45,13 +45,9 @@
           </label>
         </div>
       </div>
+      <b-button class="filter-button" @click="setFilterOn">絞り込み </b-button>
     </nav>
-    <search-options
-      v-if="
-        store.state.productList.length !== 0 ||
-        store.state.rktProductList.length !== 0
-      "
-    />
+    <search-options v-if="store.state.filterOn === true" />
   </div>
 </template>
 
@@ -78,8 +74,12 @@ export default defineComponent({
         return;
       }
     };
+    const setFilterOn = () => {
+      store.commit("setFilterOn");
+    };
     return {
       searchProducts,
+      setFilterOn,
     };
   },
   data() {
@@ -89,3 +89,10 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.filter-button {
+  margin: 10px;
+  background-color: lightblue;
+}
+</style>

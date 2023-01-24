@@ -47,7 +47,11 @@
       >
         <img
           class="card-img-top"
-          :src="rktProduct.mediumImageUrls[0].imageUrl"
+          :src="
+            rktProduct.mediumImageUrls[0].imageUrl
+              ? rktProduct.mediumImageUrls[0].imageUrl
+              : ''
+          "
           alt="商品画像"
         />
         <div class="card-body">

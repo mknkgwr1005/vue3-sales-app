@@ -1,16 +1,34 @@
 <template>
   <div>
-    <div>
-      <b-form inline>
+    <div class="filter-option">
+      <b-form-group inline>
+        <label class="mr-sm-2" for="displayDataNum">表示数：</label>
         <b-form-select
-          id="inline-form-custom-select-pref"
+          id="displayDataNum"
           class="mb-2 mr-sm-2 mb-sm-0"
-          :options="displayData"
+          :options="store.state.displayData"
           v-model="store.state.results"
         ></b-form-select>
-      </b-form>
-      {{ store.state.productsPerPage }}件表示
-      {{ store.state.totalProductsNum }}件ヒット
+      </b-form-group>
+      <b-form-group inline>
+        <label class="mr-sm-2" for="orderData">並び順：</label>
+        <b-form-select
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0"
+          value="title"
+          :options="store.state.changeOrderData"
+          v-model="store.state.sort"
+        ></b-form-select>
+      </b-form-group>
+      <p
+        v-if="
+          store.state.productList.length !== 0 ||
+          store.state.rktProductList.length !== 0
+        "
+      >
+        {{ store.state.productsPerPage }}件表示
+        {{ store.state.totalProductsNum }}件ヒット
+      </p>
     </div>
   </div>
 </template>
@@ -33,7 +51,6 @@ export default defineComponent({
         return;
       }
     };
-
     store.watch(
       (state) => state.results,
       (val) => {
@@ -49,13 +66,6 @@ export default defineComponent({
   data() {
     return {
       store,
-      displayData: [
-        { text: "表示数", value: 0 },
-        { text: "5件", value: 5 },
-        { text: "10件", value: 10 },
-        { text: "15件", value: 15 },
-        { text: "20件", value: 20 },
-      ],
     };
   },
 });
