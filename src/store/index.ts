@@ -1,5 +1,5 @@
 import { apiProducts } from "@/types/yahoo/apiProducts";
-import { createStore, storeKey } from "vuex";
+import { createStore } from "vuex";
 import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
@@ -65,6 +65,8 @@ const actions = {
     }
     const formatOptions = state.options.join("");
 
+    const imageSize = "&image_size=300";
+
     const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
     try {
       const response = await axios.get(
@@ -72,6 +74,7 @@ const actions = {
           appId +
           "&query=" +
           state.inputValue +
+          imageSize +
           formatOptions +
           sortOptions
       );
