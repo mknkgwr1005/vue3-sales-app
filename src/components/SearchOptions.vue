@@ -1,6 +1,8 @@
 <template>
   <div>
-    <div class="filter-option">
+    <div
+      class="container filter-option d-flex flex-wrap justify-content-center"
+    >
       <b-form-group inline>
         <label class="mr-sm-2" for="displayDataNum">表示数：</label>
         <b-form-select
@@ -20,6 +22,27 @@
           v-model="store.state.sort"
         ></b-form-select>
       </b-form-group>
+      <b-form-group inline>
+        <label class="mr-sm-2" for="orderData">ジャンル：</label>
+        <b-form-select
+          v-if="store.state.searchOption === 'yahoo'"
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0 yahooOptions"
+          value="title"
+          :options="store.state.yahooCategory"
+          v-model="store.state.genre"
+        ></b-form-select>
+        <b-form-select
+          v-if="store.state.searchOption === 'rakuten'"
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0 rakutenOptions"
+          value="title"
+          :options="store.state.rktCategory"
+          v-model="store.state.genre"
+        ></b-form-select>
+      </b-form-group>
+    </div>
+    <div class="displayDataHit">
       <p
         v-if="
           store.state.productList.length !== 0 ||

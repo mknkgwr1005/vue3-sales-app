@@ -10,7 +10,7 @@
     </div>
 
     <div>
-      <search-bar />
+      <search-bar ref="child" />
     </div>
 
     <div
@@ -23,9 +23,7 @@
         :key="product.index"
         :title="product.name"
         :img-src="
-          product.image.length > 0
-            ? product.image.medium
-            : '../assets/img/no_image.jpg'
+          product.image.medium.length > 0 ? product.image.medium : noimgPath
         "
         style="width: 300px"
         img-top
@@ -34,7 +32,9 @@
         <b-card-body>
           <b-card-text>
             <h6 class="card-subtitle">&yen;{{ product.price }}</h6>
-            <p>{{ product.releaseDate }}</p>
+            <b-link @click="sortGenre(product.genreCategory.id)">
+              #{{ product.genreCategory.name }}
+            </b-link>
             <p>{{ product.description }}</p>
             <b-button @click="goToUrl(product.url)">購入する</b-button>
           </b-card-text>
@@ -86,57 +86,56 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<!-- <script lang="ts"> -->
+<script setup lang="ts">
+import {
+  defineComponent,
+  defineProps,
+  defineExpose,
+  defineEmits,
+  ref,
+} from "vue";
 import TopMenu from "./TopMenu.vue";
 import store from "../store/index";
+// importすることによって、templateに表示される
 import QuickAnnouncementVue from "./QuickAnnouncement.vue";
 import SearchBar from "./SearchBar.vue";
 
-export default defineComponent({
-  components: {
-    // RegisterProductsVue,
-    QuickAnnouncementVue,
-    SearchBar,
-    TopMenu,
-  },
-  setup() {
-    // 商品を定期的に探す
-    const setQuickAnnouncement = async () => {
-      console.log("hello");
+// 商品を定期的に探す
+const setQuickAnnouncement = async () => {
+  let intervalId = "";
+  const getProduct = await store.dispatch("getProductList");
+  if (!intervalId) {
+    setInterval(getProduct, 1000);
+  }
+};
+// 外部URLに遷移する
+const goToUrl = (url: string) => {
+  window.location.href = url;
+};
 
-      let intervalId = "";
-      const getProduct = await store.dispatch("getProductList");
-      if (!intervalId) {
-        setInterval(getProduct, 1000);
-      }
-    };
-    // 外部URLに遷移する
-    const goToUrl = (url: string) => {
-      window.location.href = url;
-    };
-    const handlePage = async () => {
-      if (store.state.searchOption === "yahoo") {
-        await store.dispatch("getProductList");
-      } else {
-        await store.dispatch("getRktProductList");
-      }
-    };
+const handlePage = async () => {
+  if (store.state.searchOption === "yahoo") {
+    await store.dispatch("getProductList");
+  } else {
+    await store.dispatch("getRktProductList");
+  }
+};
 
-    return {
-      // searchProducts,
-      goToUrl,
-      setQuickAnnouncement,
-      handlePage,
-    };
+const sortGenre = async (value: string) => {
+  store.commit("sortGenre", value);
+  if (store.state.searchOption === "yahoo") {
+    await store.dispatch("getProductList");
+  } else {
+    await store.dispatch("getRktProductList");
+  }
+};
 
-    // 文章を変換する
-  },
-  data() {
-    return {
-      store,
-    };
-  },
+defineExpose({
+  goToUrl,
+  setQuickAnnouncement,
+  handlePage,
+  sortGenre,
 });
 </script>
 

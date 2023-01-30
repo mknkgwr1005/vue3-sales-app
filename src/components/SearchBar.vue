@@ -45,48 +45,50 @@
           </label>
         </div>
       </div>
-      <b-button class="filter-button" @click="setFilterOn">絞り込み </b-button>
+      <div
+        v-if="
+          store.state.productList.length !== 0 ||
+          store.state.rktProductList.length !== 0
+        "
+      >
+        <b-button class="filter-button" @click="setFilterOn"
+          >絞り込み
+        </b-button>
+      </div>
     </nav>
     <search-options v-if="store.state.filterOn === true" />
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import store from "@/store";
-import { defineComponent } from "vue";
+import { defineExpose, defineEmits, defineProps, ref, watch } from "vue";
 import SearchOptions from "./SearchOptions.vue";
 
-export default defineComponent({
-  components: {
-    SearchOptions,
-  },
-  setup() {
-    // 商品一覧を取得する
-    const searchProducts = async () => {
-      const searchOption = store.state.searchOption;
-      console.log(searchOption);
+// 商品一覧を取得する
+const searchProducts = async () => {
+  console.log("search");
 
-      if (searchOption === "yahoo") {
-        await store.dispatch("getProductList");
-      } else if (searchOption === "rakuten") {
-        await store.dispatch("getRktProductList");
-      } else {
-        return;
-      }
-    };
-    const setFilterOn = () => {
-      store.commit("setFilterOn");
-    };
-    return {
-      searchProducts,
-      setFilterOn,
-    };
-  },
-  data() {
-    return {
-      store,
-    };
-  },
+  const searchOption = store.state.searchOption;
+  console.log(searchOption);
+
+  if (searchOption === "yahoo") {
+    await store.dispatch("getProductList");
+    await store.dispatch("findCategoryDetail");
+  } else if (searchOption === "rakuten") {
+    await store.dispatch("getRktProductList");
+    await store.dispatch("findRktChildCategory");
+  } else {
+    return;
+  }
+};
+const setFilterOn = () => {
+  store.commit("setFilterOn");
+};
+
+defineExpose({
+  searchProducts,
+  setFilterOn,
 });
 </script>
 

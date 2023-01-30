@@ -1,8 +1,11 @@
 import { apiProducts } from "@/types/yahoo/apiProducts";
-import { createStore } from "vuex";
+import { createStore, storeKey } from "vuex";
 import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
+import { CategoryDetail } from "@/types/yahoo/category/categoryDetail";
+import { CategoryTitle } from "@/types/yahoo/category/categoryTitle";
+import { rktCategoryDetail } from "@/types/rakuten/category/rktCategoryDetail";
 
 const state = reactive({
   inputValue: "",
@@ -32,6 +35,11 @@ const state = reactive({
     { text: "価格が高い順", value: "expensive" },
   ],
   sort: "",
+  yahooCategory: [],
+  yCategory: new Array<CategoryDetail>(),
+  rktCategory: [],
+  rktChildCategory: [],
+  genre: "",
 });
 const actions = {
   /**
@@ -56,6 +64,13 @@ const actions = {
       }
     }
 
+    const stateGenre = state.genre;
+    let sortGenre = "";
+
+    if (stateGenre.length !== 0) {
+      sortGenre = "&genre_category_id=" + stateGenre;
+    }
+
     if (state.results !== 0) {
       state.productsPerPage = state.results;
       state.options.push("&results=", String(state.results));
@@ -75,10 +90,12 @@ const actions = {
           "&query=" +
           state.inputValue +
           imageSize +
+          sortGenre +
           formatOptions +
           sortOptions
       );
       const payload = response.data;
+
       // 商品を表示させる
       context.commit("showProductList", payload.hits);
       // 商品を取得したら、ページ数とヒット数を表示する
@@ -86,6 +103,25 @@ const actions = {
     } catch (err: any) {
       console.log(err.message);
     }
+  },
+  /**
+   * 子カテゴリを探す
+   */
+  async findCategoryDetail(context: any) {
+    const categoryIds = [
+      13457, 2498, 2505, 2511, 2513, 2501, 2500, 2502, 2504, 2506, 2507, 2508,
+      2503, 2509, 2510, 2497, 2512, 2514, 2516, 2517, 10002,
+    ];
+    const payload = [];
+    for (const categoryid of categoryIds) {
+      const response = await axios.get(
+        "https://shopping.yahooapis.jp/ShoppingWebService/V1/categorySearch?appid=dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-&category_id=" +
+          +categoryid +
+          "&output=json"
+      );
+      payload.push(response.data.ResultSet[0].Result.Categories);
+    }
+    context.commit("showYahooCategory", payload);
   },
   /**
    * 楽天の商品を取得する
@@ -108,6 +144,14 @@ const actions = {
         sortOptions = "&sort=-itemPrice";
       }
     }
+
+    const stateGenre = state.genre;
+    let sortGenre = "";
+
+    if (stateGenre.length !== 0) {
+      sortGenre = "&genreId=" + stateGenre;
+    }
+
     if (state.results !== 0) {
       state.productsPerPage = state.results;
       state.options.push("&hits=", String(state.results));
@@ -124,17 +168,53 @@ const actions = {
           appId +
           "&keyword=" +
           state.inputValue +
+          sortGenre +
           formatOptions +
           sortOptions
       );
       const payload = response.data;
-      console.log("payload", payload);
 
       context.commit("showRktProductList", payload.Items);
       context.commit("handlePageNum", payload);
     } catch (err: any) {
       console.log(err);
     }
+  },
+  /**
+   * 子カテゴリを探す
+   */
+  async findRktChildCategory(context: any) {
+    const payload = [];
+    const appId = "1047939681842243304";
+
+    const genreIds: number[] = [];
+
+    const parents = await axios.get(
+      "https://app.rakuten.co.jp/services/api/IchibaGenre/Search/20140222?applicationId=" +
+        appId +
+        "&genreId=" +
+        0
+    );
+
+    const parentsData = parents.data;
+    const children = parentsData.children;
+
+    for (const genre of Object.keys(children)) {
+      const data = children[genre];
+      genreIds.push(data.child.genreId);
+    }
+
+    for (const genreId of genreIds) {
+      const response = await axios.get(
+        "https://app.rakuten.co.jp/services/api/IchibaGenre/Search/20140222?applicationId=" +
+          appId +
+          "&genreId=" +
+          genreId
+      );
+      payload.push(response.data);
+    }
+
+    context.commit("showRakutenChild", payload);
   },
 };
 const mutations = {
@@ -179,6 +259,73 @@ const mutations = {
           product.delivery
         )
       );
+    }
+  },
+  /**
+   * yahooの子カテゴリを表示する
+   * @param state
+   * @param payload
+   */
+  showYahooCategory(state: any, payload: any) {
+    for (const category of payload) {
+      state.yCategory.push(
+        new CategoryDetail(
+          category.Current.Id,
+          category.Current.ParentId,
+          category.Current.Url,
+          category.Current.Title,
+          category.Current.Path,
+          category.Children
+        )
+      );
+    }
+    const currentCategory = state.yCategory;
+    const displayCategory = state.yahooCategory;
+
+    // カテゴリ（レベル１）の表示
+    for (const category of currentCategory) {
+      displayCategory.push({
+        text: category._title.Medium,
+        value: category._id,
+      });
+      // 子カテゴリの表示
+      const childrens = category._children;
+      for (const child of Object.keys(childrens)) {
+        const data = childrens[child];
+        if (data === "Child") {
+          continue;
+        }
+        const dataTitle = data.Title.Medium;
+
+        displayCategory.push({
+          text: "-" + dataTitle,
+          value: data.Id,
+        });
+      }
+    }
+  },
+  /**
+   * 楽天の子カテゴリを表示する
+   * @param state
+   * @param payload
+   */
+  showRakutenChild(state: any, payload: any) {
+    const categories = payload;
+    const displayCategory = state.rktCategory;
+
+    for (const category of categories) {
+      const current = category.current;
+      displayCategory.push({
+        text: current.genreName,
+        value: current.genreId,
+      });
+      const children = category.children;
+      for (const child of children) {
+        displayCategory.push({
+          text: "―" + child.child.genreName,
+          value: child.child.genreId,
+        });
+      }
     }
   },
   /**
@@ -281,6 +428,17 @@ const mutations = {
    */
   setFilterOn(state: any) {
     state.filterOn = true;
+  },
+  /**
+   * 絞り込み機能
+   * @param state
+   * @param newId
+   */
+  sortGenre(state: any, payload: string) {
+    console.log(payload);
+
+    state.currentPageNum = 1;
+    state.genre = payload;
   },
 };
 const getters = {};
