@@ -1,11 +1,9 @@
 import { apiProducts } from "@/types/yahoo/apiProducts";
-import { createStore, storeKey } from "vuex";
+import { createStore } from "vuex";
 import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
 import { CategoryDetail } from "@/types/yahoo/category/categoryDetail";
-import { CategoryTitle } from "@/types/yahoo/category/categoryTitle";
-import { rktCategoryDetail } from "@/types/rakuten/category/rktCategoryDetail";
 
 const state = reactive({
   inputValue: "",
@@ -80,12 +78,13 @@ const actions = {
     }
     const formatOptions = state.options.join("");
 
-    const imageSize = "&image_size=300";
-
+    const endpoint =
+      "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=";
     const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+    const imageSize = "&image_size=300";
     try {
       const response = await axios.get(
-        "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
+        endpoint +
           appId +
           "&query=" +
           state.inputValue +
