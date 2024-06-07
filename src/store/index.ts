@@ -119,7 +119,6 @@ const actions = {
     state.rktProductList = [];
     if (state.results !== "表示数") {
       console.log(state.results);
-
       state.options = "&results=" + state.results;
     }
 
@@ -130,10 +129,9 @@ const actions = {
           appId +
           "&query=" +
           state.inputValue +
-          state.options
-        // +
-        // "&start=" +
-        // state.start
+          state.options +
+          "&start=" +
+          state.start
       );
       const payload = response.data.hits;
       console.log(payload);
