@@ -9,117 +9,139 @@
       <quick-announcement-vue />
     </div>
 
-    <search-bar />
-
-    <div
-      class="main d-flex flex-wrap align-content-center justify-content-center"
-    >
-      <div
-        class="card yahoo-productList"
-        v-for="product of store.state.productList"
-        :key="product.index"
-      >
-        <img class="card-img-top" :src="product.image.medium" alt="商品画像" />
-        <div class="card-body">
-          <h4 class="card-title">{{ product.name }}</h4>
-          <h6 class="card-subtitle">&yen;{{ product.price }}</h6>
-          <p>{{ product.releaseDate }}</p>
-          <p>{{ product.description }}</p>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            @click="goToUrl(product.url)"
-          >
-            購入する
-          </button>
-        </div>
-      </div>
+    <div>
+      <search-bar ref="child" />
     </div>
 
     <div
-      class="main d-flex flex-wrap align-content-center justify-content-center"
-      v-if="store.state.rktProductList"
+      class="yahoo-card d-inline-flex flex-wrap justify-content-center"
+      v-if="store.state.productList.length !== 0"
     >
-      <div
-        class="card rakuten-productList"
+      <b-card
+        class="cards mb-3"
+        v-for="product of store.state.productList"
+        :key="product.index"
+        :title="product.name"
+        :img-src="
+          product.image.medium.length > 0 ? product.image.medium : noimgPath
+        "
+        style="width: 300px"
+        img-top
+        align="center"
+      >
+        <b-card-body>
+          <b-card-text>
+            <h6 class="card-subtitle">&yen;{{ product.price }}</h6>
+            <b-link @click="sortGenre(product.genreCategory.id)">
+              #{{ product.genreCategory.name }}
+            </b-link>
+            <p>{{ product.description }}</p>
+            <b-button @click="goToUrl(product.url)">購入する</b-button>
+          </b-card-text>
+        </b-card-body>
+      </b-card>
+    </div>
+
+    <div
+      class="rakuten-card d-inline-flex flex-wrap justify-content-center"
+      v-if="store.state.rktProductList.length !== 0"
+    >
+      <b-card
+        class="cards mb-3"
         v-for="rktProduct of store.state.rktProductList"
         :key="rktProduct.affiliateUrl"
+        :title="rktProduct.itemName"
+        :img-src="
+          rktProduct.mediumImageUrls.length > 0
+            ? rktProduct.mediumImageUrls[0].imageUrl
+            : '../assets/img/no_image.jpg'
+        "
+        style="width: 300px"
+        img-top
+        align="center"
       >
-        <img
-          class="card-img-top"
-          :src="rktProduct.mediumImageUrls[0].imageUrl"
-          alt="商品画像"
-        />
-        <div class="card-body">
-          <h4 class="card-title">{{ rktProduct.itemName }}</h4>
-          <h6 class="card-subtitle">&yen;{{ rktProduct.itemPrice }}</h6>
-          <p>{{ rktProduct.itemCaption }}</p>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            @click="goToUrl(rktProduct.itemUrl)"
-          >
-            購入する
-          </button>
-        </div>
+        <b-card-body>
+          <b-card-text>
+            <h6 class="card-subtitle">&yen;{{ rktProduct.itemPrice }}</h6>
+            <p>{{ rktProduct.itemCaption }}</p>
+            <b-button @click="goToUrl(rktProduct.itemUrl)">購入する</b-button>
+          </b-card-text>
+        </b-card-body>
+      </b-card>
+    </div>
+
+    <div class="overflow-auto">
+      <div class="mt-3">
+        <b-pagination
+          v-model="store.state.currentPageNum"
+          :total-rows="store.state.totalPageNum"
+          :limit="10"
+          :first-number="true"
+          :last-number="true"
+          @click="handlePage"
+          align="center"
+        ></b-pagination>
       </div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import RegisterProductsVue from "@/views/RegisterProducts.vue";
-import { defineComponent } from "vue";
+<!-- <script lang="ts"> -->
+<script setup lang="ts">
+import {
+  defineComponent,
+  defineProps,
+  defineExpose,
+  defineEmits,
+  ref,
+} from "vue";
 import TopMenu from "./TopMenu.vue";
 import store from "../store/index";
+// importすることによって、templateに表示される
 import QuickAnnouncementVue from "./QuickAnnouncement.vue";
 import SearchBar from "./SearchBar.vue";
 
-export default defineComponent({
-  components: {
-    // RegisterProductsVue,
-    QuickAnnouncementVue,
-    SearchBar,
-    TopMenu,
-  },
-  setup() {
-    // 商品を定期的に探す
-    const setQuickAnnouncement = async () => {
-      console.log("hello");
+// 商品を定期的に探す
+const setQuickAnnouncement = async () => {
+  let intervalId = "";
+  const getProduct = await store.dispatch("getProductList");
+  if (!intervalId) {
+    setInterval(getProduct, 1000);
+  }
+};
+// 外部URLに遷移する
+const goToUrl = (url: string) => {
+  window.location.href = url;
+};
 
-      let intervalId = "";
-      const getProduct = await store.dispatch("getProductList");
-      if (!intervalId) {
-        setInterval(getProduct, 1000);
-      }
-    };
-    // 外部URLに遷移する
-    const goToUrl = (url: any) => {
-      window.location.href = url;
-    };
+const handlePage = async () => {
+  if (store.state.searchOption === "yahoo") {
+    await store.dispatch("getProductList");
+  } else {
+    await store.dispatch("getRktProductList");
+  }
+};
 
-    return {
-      // searchProducts,
-      goToUrl,
-      setQuickAnnouncement,
-    };
+const sortGenre = async (value: string) => {
+  store.commit("sortGenre", value);
+  if (store.state.searchOption === "yahoo") {
+    await store.dispatch("getProductList");
+  } else {
+    await store.dispatch("getRktProductList");
+  }
+};
 
-    // 文章を変換する
-  },
-  data() {
-    return {
-      store,
-    };
-  },
+defineExpose({
+  goToUrl,
+  setQuickAnnouncement,
+  handlePage,
+  sortGenre,
 });
 </script>
 
 <style scoped>
-.card {
-  width: 30%;
-  white-space: pre-wrap;
-}
-.search-form {
-  width: 50%;
+.cards {
+  width: 300px;
+  justify-content: center;
 }
 </style>

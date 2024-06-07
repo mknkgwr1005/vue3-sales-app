@@ -1,20 +1,57 @@
 <template>
   <div>
-    <div>
-      <div class="form-floating">
-        <select
-          class="form-select"
-          id="floatingSelect"
-          aria-label="Floating label select example"
+    <div
+      class="container filter-option d-flex flex-wrap justify-content-center"
+    >
+      <b-form-group inline>
+        <label class="mr-sm-2" for="displayDataNum">表示数：</label>
+        <b-form-select
+          id="displayDataNum"
+          class="mb-2 mr-sm-2 mb-sm-0"
+          :options="store.state.displayData"
           v-model="store.state.results"
-        >
-          <option selected>表示数</option>
-          <option value="5">5件</option>
-          <option value="10">10件</option>
-          <option value="15">15件</option>
-          <option value="20">20件</option>
-        </select>
-      </div>
+        ></b-form-select>
+      </b-form-group>
+      <b-form-group inline>
+        <label class="mr-sm-2" for="orderData">並び順：</label>
+        <b-form-select
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0"
+          value="title"
+          :options="store.state.changeOrderData"
+          v-model="store.state.sort"
+        ></b-form-select>
+      </b-form-group>
+      <b-form-group inline>
+        <label class="mr-sm-2" for="orderData">ジャンル：</label>
+        <b-form-select
+          v-if="store.state.searchOption === 'yahoo'"
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0 yahooOptions"
+          value="title"
+          :options="store.state.yahooCategory"
+          v-model="store.state.genre"
+        ></b-form-select>
+        <b-form-select
+          v-if="store.state.searchOption === 'rakuten'"
+          id="orderData"
+          class="mb-2 mr-sm-2 mb-sm-0 rakutenOptions"
+          value="title"
+          :options="store.state.rktCategory"
+          v-model="store.state.genre"
+        ></b-form-select>
+      </b-form-group>
+    </div>
+    <div class="displayDataHit">
+      <p
+        v-if="
+          store.state.productList.length !== 0 ||
+          store.state.rktProductList.length !== 0
+        "
+      >
+        {{ store.state.productsPerPage }}件表示
+        {{ store.state.totalProductsNum }}件ヒット
+      </p>
     </div>
   </div>
 </template>
@@ -37,6 +74,14 @@ export default defineComponent({
         return;
       }
     };
+    store.watch(
+      (state) => state.results,
+      (val) => {
+        if (val) {
+          store.state.currentPageNum = 1;
+        }
+      }
+    );
     return {
       searchProducts,
     };
