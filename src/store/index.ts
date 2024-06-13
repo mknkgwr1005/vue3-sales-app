@@ -216,6 +216,8 @@ const actions = {
       );
       const payload = response.data;
       console.log("rakuten", payload);
+      context.commit("showRktProductList", payload.Items);
+      context.commit("handlePageNum", payload);
     } catch (err: any) {
       console.log(err);
     }
@@ -343,7 +345,7 @@ const mutations = {
         keyword: state.inputValue,
         name: payload.itemName,
         genreId: payload.genreId,
-        image: payload.mediumImageUrls,
+        image: payload.itemUrl,
         url: payload.itemUrl,
         lastHitUrl: state.lastHitUrl,
       };
