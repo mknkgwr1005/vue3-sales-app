@@ -19,7 +19,7 @@ const searchRegisteredProducts = async () => {
   const getProduct = async () => await store.dispatch("getRegisteredProducts");
   if (intervalId === null) {
     console.log(intervalId);
-    // intervalId = window.setInterval(getProduct, 60000);
+    intervalId = window.setInterval(getProduct, 60000);
   }
 };
 store.commit("setStateRegisterData");

@@ -4,7 +4,6 @@ import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
 import { CategoryDetail } from "@/types/yahoo/category/categoryDetail";
-import { CategoryTitle } from "@/types/yahoo/category/categoryTitle";
 import { rktCategoryDetail } from "@/types/rakuten/category/rktCategoryDetail";
 import { newArriveItem } from "@/types/registerProducts/newArriveItem";
 import { db } from "@/firebase";
@@ -45,6 +44,7 @@ const state = reactive({
   lastHitUrl: "",
   registerData: new Array<newArriveItem>(),
   announceData: new Array<apiProducts>(),
+  announceSize: 5,
 });
 const actions = {
   /**
@@ -69,14 +69,12 @@ const actions = {
             searchKeyword +
             imageSize +
             sortGenre +
-            results
+            results //5件だけ取得する
         );
         const nowData = response.data;
-        console.log("now:", nowData.hits[0].url);
-        console.log("before:", registeredProduct.url);
         const newUrl = nowData.hits[0].url;
         const registeredUrl = registeredProduct.lastHitUrl;
-
+        // 新しく取得したデータの先頭と、登録してる商品のURLが違うときに速報に表示する
         if (!(newUrl === registeredUrl)) {
           console.log("入荷");
           // 速報に表示する commit
@@ -268,7 +266,18 @@ const mutations = {
   showNewArriveData(state: any, payload: any) {
     const newItem = payload.hits[0];
 
-    for (const registerItem of state.registerData) {
+    // 既に存在するアイテムかどうかをチェック
+    const isItemExist = state.announceData.some(
+      (item: any) => item.url === newItem.url
+    );
+
+    if (!isItemExist) {
+      // 配列のサイズを制限する（例：最大10件まで）
+      if (state.announceData.length >= state.announceSize) {
+        state.announceData.shift(); // 古いアイテムを削除
+      }
+
+      // 新しいアイテムを追加
       state.announceData.push(
         new apiProducts(
           newItem.index,
@@ -302,10 +311,11 @@ const mutations = {
           newItem.delivery
         )
       );
-    }
 
-    const newArriveItem = db.collection("newArriveItem");
-    newArriveItem.doc().set(newItem, { merge: true });
+      // データベースに新しいアイテムを追加
+      const newArriveItem = db.collection("newArriveItem");
+      newArriveItem.doc().set(newItem, { merge: true });
+    }
   },
   /**
    * 速報用に、検索で１番新しいURLをセットする

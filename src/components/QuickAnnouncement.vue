@@ -14,7 +14,7 @@
           </b-card>
         </div>
       </div>
-      <div class="errorMessage" :v-if="!store.state.announceData">
+      <div class="errorMessage" :v-if="store.state.announceData.length === 0">
         入荷情報はまだありません
       </div>
     </div>
