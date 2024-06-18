@@ -11,18 +11,23 @@ import store from "../src/store/index";
 import { onMounted } from "@vue/runtime-core";
 
 /**
+ * 常にDBから登録している商品を取得してくる
+ *  */
+const getRegiserDatafromDB = store.commit("fetchRegisterData");
+/**
  * 登録した商品を定期的に検索する
  */
 let intervalId: number | null = null;
 
 const searchRegisteredProducts = async () => {
+  getRegiserDatafromDB;
+  console.log(store.state.registerData);
   const getProduct = async () => await store.dispatch("getRegisteredProducts");
   if (intervalId === null) {
-    console.log(intervalId);
-    intervalId = window.setInterval(getProduct, 60000);
+    intervalId = window.setInterval(getProduct, 6000);
   }
 };
-store.commit("setStateRegisterData");
+// 定期的に商品を検索する
 onMounted(() => searchRegisteredProducts());
 </script>
 

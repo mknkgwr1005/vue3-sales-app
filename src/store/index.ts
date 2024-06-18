@@ -7,6 +7,16 @@ import { CategoryDetail } from "@/types/yahoo/category/categoryDetail";
 import { rktCategoryDetail } from "@/types/rakuten/category/rktCategoryDetail";
 import { newArriveItem } from "@/types/registerProducts/newArriveItem";
 import { db } from "@/firebase";
+import {
+  collection,
+  setDoc,
+  doc,
+  updateDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { commonProducts } from "@/types/commonProducts";
 
 const state = reactive({
   inputValue: "",
@@ -43,8 +53,9 @@ const state = reactive({
   genre: "",
   lastHitUrl: "",
   registerData: new Array<newArriveItem>(),
-  announceData: new Array<apiProducts>(),
+  announceData: new Array<commonProducts>(),
   announceSize: 5,
+  stopSearchCount: 3,
 });
 const actions = {
   /**
@@ -52,36 +63,75 @@ const actions = {
    * @param context
    */
   async getRegisteredProducts(context: any) {
-    console.log("入荷情報確認");
-    //検索
-    for (const registeredProduct of state.registerData) {
-      const searchKeyword = registeredProduct.keyword;
-      const imageSize = "&image_size=300";
-      const sortGenre = "&genre_category_id=" + registeredProduct.genreId;
-      const results = "&results=5";
+    state.stopSearchCount++;
 
-      const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+    // 検索を最大5回に制限
+    if (state.stopSearchCount > 5) {
+      return;
+    }
+
+    for (const registeredProduct of state.registerData) {
+      const searchOption = registeredProduct.searchOption;
+      let newUrl = "";
+      let nowData = null;
+
       try {
-        const response = await axios.get(
-          "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
-            appId +
-            "&query=" +
-            searchKeyword +
-            imageSize +
-            sortGenre +
-            results //5件だけ取得する
-        );
-        const nowData = response.data;
-        const newUrl = nowData.hits[0].url;
-        const registeredUrl = registeredProduct.lastHitUrl;
-        // 新しく取得したデータの先頭と、登録してる商品のURLが違うときに速報に表示する
-        if (!(newUrl === registeredUrl)) {
+        if (searchOption === "yahoo") {
+          // Yahooのとき
+          const searchKeyword = registeredProduct.keyword;
+          const imageSize = "&image_size=300";
+          const sortGenre = "&genre_category_id=" + registeredProduct.genreId;
+          const results = "&results=5";
+          const appId =
+            "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+
+          const response = await axios.get(
+            `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&query=${searchKeyword}${imageSize}${sortGenre}${results}`
+          );
+
+          nowData = response.data.hits[0];
+          newUrl = nowData.url;
+        } else if (searchOption === "rakuten") {
+          // 楽天のとき
+          const rktAppId = "1047939681842243304";
+          const response = await axios.get(
+            `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=${rktAppId}&keyword=${registeredProduct.keyword}&genreId=${registeredProduct.genreId}`
+          );
+
+          nowData = response.data.Items[0].Item;
+          newUrl = nowData.itemUrl;
+        }
+
+        const registeredUrl = registeredProduct.url;
+
+        // 新しく取得したデータの先頭と、登録している商品のURLが違うときに速報に表示する
+        if (newUrl && newUrl !== registeredUrl) {
           console.log("入荷");
+
           // 速報に表示する commit
-          context.commit("showNewArriveData", nowData);
-        } else return;
+          const commonProduct =
+            searchOption === "yahoo"
+              ? {
+                  name: nowData.name,
+                  url: nowData.url,
+                  imageUrl: nowData.image.medium,
+                  price: nowData.price,
+                  reviewCount: nowData.review.count,
+                  reviewAverage: nowData.review.rate,
+                }
+              : {
+                  name: nowData.itemName,
+                  url: nowData.itemUrl,
+                  imageUrl: nowData.mediumImageUrls[0],
+                  price: nowData.itemPrice,
+                  reviewCount: nowData.reviewCount,
+                  reviewAverage: nowData.reviewAverage,
+                };
+
+          context.commit("showNewArriveData", commonProduct);
+        }
       } catch (err: any) {
-        console.log(err.message);
+        console.error(`Error in getRegisteredProducts: ${err.message}`);
       }
     }
   },
@@ -263,12 +313,12 @@ const mutations = {
    * @param state
    * @param payload
    */
-  showNewArriveData(state: any, payload: any) {
-    const newItem = payload.hits[0];
+  async showNewArriveData(state: any, payload: commonProducts) {
+    const newItem = payload;
 
     // 既に存在するアイテムかどうかをチェック
     const isItemExist = state.announceData.some(
-      (item: any) => item.url === newItem.url
+      (item: commonProducts) => item.url === newItem.url
     );
 
     if (!isItemExist) {
@@ -277,45 +327,9 @@ const mutations = {
         state.announceData.shift(); // 古いアイテムを削除
       }
 
-      // 新しいアイテムを追加
-      state.announceData.push(
-        new apiProducts(
-          newItem.index,
-          newItem.name,
-          newItem.description,
-          newItem.headLine,
-          newItem.url,
-          newItem.inStock,
-          newItem.code,
-          newItem.condition,
-          newItem.imageId,
-          newItem.image,
-          newItem.review,
-          newItem.offiliateRate,
-          newItem.price,
-          newItem.premiumPrice,
-          newItem.premiumPriceStatus,
-          newItem.premiumDiscountRate,
-          newItem.premiumDiscountType,
-          newItem.priceLabel,
-          newItem.point,
-          newItem.shipping,
-          newItem.genreCategory,
-          newItem.parentGenreCategories,
-          newItem.brand,
-          newItem.parentBrands,
-          newItem.janCode,
-          newItem.payment,
-          newItem.releaseDate,
-          newItem.seller,
-          newItem.delivery
-        )
-      );
-
-      // データベースに新しいアイテムを追加
-      const newArriveItem = db.collection("newArriveItem");
-      newArriveItem.doc().set(newItem, { merge: true });
+      state.announceData.push(payload);
     }
+    console.log(state.announceData);
   },
   /**
    * 速報用に、検索で１番新しいURLをセットする
@@ -330,35 +344,41 @@ const mutations = {
    * @param state
    * @param payload
    */
-  setRegisterData(state: any, payload: any) {
-    if (state.searchOption === "yahoo") {
-      const payloadData = {
-        searchOption: state.searchOption,
-        keyword: state.inputValue,
-        name: payload.name,
-        brand: payload.brand.name,
-        genre: payload.genreCategory.name,
-        genreId: payload.genreCategory.id,
-        image: payload.image.medium,
-        url: payload.url,
-        lastHitUrl: state.lastHitUrl,
-      };
+  async setRegisterData(state: any, payload: any) {
+    const searchOption = state.searchOption;
+    const payloadData =
+      searchOption === "yahoo"
+        ? {
+            searchOption: state.searchOption,
+            keyword: state.inputValue,
+            name: payload.name,
+            brand: payload.brand.name,
+            genre: payload.genreCategory.name,
+            genreId: payload.genreCategory.id,
+            image: payload.image.medium,
+            url: payload.url,
+            lastHitUrl: state.lastHitUrl,
+          }
+        : {
+            searchOption: state.searchOption,
+            keyword: state.inputValue,
+            name: payload.itemName,
+            genreId: payload.genreId,
+            image: payload.itemUrl,
+            url: payload.itemUrl,
+            lastHitUrl: state.lastHitUrl,
+          };
 
-      // firebaseに送るメソッド
-      const registerDataRef = db.collection("registerData");
-      registerDataRef.doc().set(payloadData, { merge: true });
+    // データの重複をチェック
+    const registerDataCollection = collection(db, "registerData");
+    const querySnapshot = await getDocs(
+      query(registerDataCollection, where("url", "==", payload.url))
+    );
 
-      this.setStateRegisterData;
-    } else if (state.searchOption === "rakuten") {
-      const payloadData = {
-        searchOption: state.searchOption,
-        keyword: state.inputValue,
-        name: payload.itemName,
-        genreId: payload.genreId,
-        image: payload.itemUrl,
-        url: payload.itemUrl,
-        lastHitUrl: state.lastHitUrl,
-      };
+    if (!querySnapshot.empty) {
+      console.log("同じデータが既に存在します");
+      return;
+    } else {
       // firebaseに送るメソッド
       const registerDataRef = db.collection("registerData");
       registerDataRef.doc().set(payloadData, { merge: true });
@@ -368,7 +388,7 @@ const mutations = {
    * 登録した商品をstateに保存する
    * @param state
    */
-  setStateRegisterData(state: any) {
+  fetchRegisterData(state: any) {
     const registerDataRef = db.collection("registerData");
 
     // stateにセットする
@@ -376,13 +396,15 @@ const mutations = {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         state.registerData.push({
-          url: data.url,
-          genreId: data.genreId,
-          image: data.image,
+          searchOption: data.searchOption,
           keyword: data.keyword,
           name: data.name,
+          image: data.image,
           brand: data.brand,
+          genreId: data.genreId,
           genre: data.genre,
+          url: data.url,
+          lastHitUrl: data.lastHitUrl,
         });
       });
     });

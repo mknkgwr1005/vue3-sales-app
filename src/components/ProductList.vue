@@ -108,6 +108,7 @@ import QuickAnnouncementVue from "./QuickAnnouncement.vue";
 import SearchBar from "./SearchBar.vue";
 // 速報する商品に登録する
 const register = (product: any) => {
+  console.log("登録する");
   store.commit("setRegisterData", product);
 };
 
