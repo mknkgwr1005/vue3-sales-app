@@ -1,5 +1,6 @@
 <template>
   <div class="container-fluid">
+    <top-menu />
     <div class="title">
       <h1 class="text-center">商品検索アプリ</h1>
     </div>
@@ -9,7 +10,7 @@
     </div>
 
     <div>
-      <search-bar />
+      <search-bar ref="child" />
     </div>
 
     <div
@@ -36,13 +37,6 @@
             </b-link>
             <p>{{ product.description }}</p>
             <b-button @click="goToUrl(product.url)">購入する</b-button>
-            <button
-              type="button"
-              class="btn btn-success"
-              @click="register(product)"
-            >
-              この商品を登録する
-            </button>
           </b-card-text>
         </b-card-body>
       </b-card>
@@ -71,13 +65,6 @@
             <h6 class="card-subtitle">&yen;{{ rktProduct.itemPrice }}</h6>
             <p>{{ rktProduct.itemCaption }}</p>
             <b-button @click="goToUrl(rktProduct.itemUrl)">購入する</b-button>
-            <button
-              type="button"
-              class="btn btn-success"
-              @click="register(rktProduct)"
-            >
-              この商品を登録する
-            </button>
           </b-card-text>
         </b-card-body>
       </b-card>
@@ -101,16 +88,27 @@
 
 <!-- <script lang="ts"> -->
 <script setup lang="ts">
-import { defineProps, defineExpose, defineEmits, ref } from "vue";
+import {
+  defineComponent,
+  defineProps,
+  defineExpose,
+  defineEmits,
+  ref,
+} from "vue";
+import TopMenu from "./TopMenu.vue";
 import store from "../store/index";
 // importすることによって、templateに表示される
 import QuickAnnouncementVue from "./QuickAnnouncement.vue";
 import SearchBar from "./SearchBar.vue";
-// 速報する商品に登録する
-const register = (product: any) => {
-  store.commit("setRegisterData", product);
-};
 
+// 商品を定期的に探す
+const setQuickAnnouncement = async () => {
+  let intervalId = "";
+  const getProduct = await store.dispatch("getProductList");
+  if (!intervalId) {
+    setInterval(getProduct, 1000);
+  }
+};
 // 外部URLに遷移する
 const goToUrl = (url: string) => {
   window.location.href = url;
@@ -134,8 +132,8 @@ const sortGenre = async (value: string) => {
 };
 
 defineExpose({
-  register,
   goToUrl,
+  setQuickAnnouncement,
   handlePage,
   sortGenre,
 });
