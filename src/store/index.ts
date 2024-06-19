@@ -1,22 +1,9 @@
 import { apiProducts } from "@/types/yahoo/apiProducts";
-import { createStore, storeKey } from "vuex";
+import { createStore } from "vuex";
 import axios from "axios";
 import { rktProducts } from "@/types/rakuten/rktProducts";
 import { reactive } from "vue";
 import { CategoryDetail } from "@/types/yahoo/category/categoryDetail";
-import { rktCategoryDetail } from "@/types/rakuten/category/rktCategoryDetail";
-import { newArriveItem } from "@/types/registerProducts/newArriveItem";
-import { db } from "@/firebase";
-import {
-  collection,
-  setDoc,
-  doc,
-  updateDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-import { commonProducts } from "@/types/commonProducts";
 
 const state = reactive({
   inputValue: "",
@@ -51,89 +38,8 @@ const state = reactive({
   rktCategory: [],
   rktChildCategory: [],
   genre: "",
-  lastHitUrl: "",
-  registerData: new Array<newArriveItem>(),
-  announceData: new Array<commonProducts>(),
-  announceSize: 5,
-  stopSearchCount: 3,
 });
 const actions = {
-  /**
-   * 登録した商品を取得する
-   * @param context
-   */
-  async getRegisteredProducts(context: any) {
-    state.stopSearchCount++;
-
-    // 検索を最大5回に制限
-    if (state.stopSearchCount > 5) {
-      return;
-    }
-
-    for (const registeredProduct of state.registerData) {
-      const searchOption = registeredProduct.searchOption;
-      let newUrl = "";
-      let nowData = null;
-
-      try {
-        if (searchOption === "yahoo") {
-          // Yahooのとき
-          const searchKeyword = registeredProduct.keyword;
-          const imageSize = "&image_size=300";
-          const sortGenre = "&genre_category_id=" + registeredProduct.genreId;
-          const results = "&results=5";
-          const appId =
-            "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
-
-          const response = await axios.get(
-            `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&query=${searchKeyword}${imageSize}${sortGenre}${results}`
-          );
-
-          nowData = response.data.hits[0];
-          newUrl = nowData.url;
-        } else if (searchOption === "rakuten") {
-          // 楽天のとき
-          const rktAppId = "1047939681842243304";
-          const response = await axios.get(
-            `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?applicationId=${rktAppId}&keyword=${registeredProduct.keyword}&genreId=${registeredProduct.genreId}`
-          );
-
-          nowData = response.data.Items[0].Item;
-          newUrl = nowData.itemUrl;
-        }
-
-        const registeredUrl = registeredProduct.url;
-
-        // 新しく取得したデータの先頭と、登録している商品のURLが違うときに速報に表示する
-        if (newUrl && newUrl !== registeredUrl) {
-          // 速報に表示する commit
-          const commonProduct =
-            searchOption === "yahoo"
-              ? {
-                  name: nowData.name,
-                  url: nowData.url,
-                  imageUrl: nowData.image.medium,
-                  price: nowData.price,
-                  reviewCount: nowData.review.count,
-                  reviewAverage: nowData.review.rate,
-                }
-              : {
-                  name: nowData.itemName,
-                  url: nowData.itemUrl,
-                  imageUrl: nowData.mediumImageUrls[0],
-                  price: nowData.itemPrice,
-                  reviewCount: nowData.reviewCount,
-                  reviewAverage: nowData.reviewAverage,
-                };
-          console.log(commonProduct);
-
-          context.commit("showNewArriveData", commonProduct);
-        }
-      } catch (err: any) {
-        console.error(`Error in getRegisteredProducts: ${err.message}`);
-      }
-    }
-  },
   /**
    *  yahooの商品を取得する
    * @param context -state
@@ -171,11 +77,14 @@ const actions = {
       context.commit("goToNextPage");
     }
     const formatOptions = state.options.join("");
-    const imageSize = "&image_size=300";
+
+    const endpoint =
+      "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=";
     const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+    const imageSize = "&image_size=300";
     try {
       const response = await axios.get(
-        "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
+        endpoint +
           appId +
           "&query=" +
           state.inputValue +
@@ -185,6 +94,7 @@ const actions = {
           sortOptions
       );
       const payload = response.data;
+
       // 商品を表示させる
       context.commit("showProductList", payload.hits);
       // 商品を取得したら、ページ数とヒット数を表示する
@@ -262,7 +172,7 @@ const actions = {
           sortOptions
       );
       const payload = response.data;
-      console.log("rakuten", payload);
+
       context.commit("showRktProductList", payload.Items);
       context.commit("handlePageNum", payload);
     } catch (err: any) {
@@ -307,112 +217,6 @@ const actions = {
   },
 };
 const mutations = {
-  /**
-   * 速報を表示する
-   * @param state
-   * @param payload
-   */
-  async showNewArriveData(state: any, payload: commonProducts) {
-    const newItem = payload;
-
-    // 既に存在するアイテムかどうかをチェック
-    const isItemExist = state.announceData.some(
-      (item: commonProducts) => item.url === newItem.url
-    );
-
-    if (!isItemExist) {
-      // 配列のサイズを制限する（例：最大10件まで）
-      if (state.announceData.length >= state.announceSize) {
-        state.announceData.shift(); // 古いアイテムを削除
-      }
-
-      state.announceData.push(payload);
-    }
-    console.log(state.announceData);
-  },
-  /**
-   * 速報用に、検索で１番新しいURLをセットする
-   * @param state
-   * @param payload
-   */
-  setlastHitUrl(state: any, payload: any) {
-    state.lastHitUrl = payload.hits[0].url;
-  },
-  /**
-   * 監視する商品を登録する
-   * @param state
-   * @param payload
-   */
-  async setRegisterData(state: any, payload: any) {
-    const searchOption = state.searchOption;
-    const payloadData =
-      searchOption === "yahoo"
-        ? {
-            searchOption: state.searchOption,
-            keyword: state.inputValue,
-            name: payload.name,
-            brand: payload.brand.name,
-            genre: payload.genreCategory.name,
-            genreId: payload.genreCategory.id,
-            image: payload.image.medium,
-            url: payload.url,
-            lastHitUrl: state.lastHitUrl,
-          }
-        : {
-            searchOption: state.searchOption,
-            keyword: state.inputValue,
-            name: payload.itemName,
-            genreId: payload.genreId,
-            image: payload.itemUrl,
-            url: payload.itemUrl,
-            lastHitUrl: state.lastHitUrl,
-          };
-
-    // データの重複をチェック
-    const registerDataCollection = collection(db, "registerData");
-    const querySnapshot = await getDocs(
-      query(
-        registerDataCollection,
-        where("name", "==", payloadData.name),
-        where("genreId", "==", payloadData.genreId),
-        where("url", "==", payloadData.url)
-      )
-    );
-
-    if (!querySnapshot.empty) {
-      console.log("同じデータが既に存在します");
-      return;
-    } else {
-      // firebaseに送るメソッド
-      const registerDataRef = db.collection("registerData");
-      registerDataRef.doc().set(payloadData, { merge: true });
-    }
-  },
-  /**
-   * 登録した商品をstateに保存する
-   * @param state
-   */
-  fetchRegisterData(state: any) {
-    const registerDataRef = db.collection("registerData");
-
-    // stateにセットする
-    registerDataRef.get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        state.registerData.push({
-          searchOption: data.searchOption,
-          keyword: data.keyword,
-          name: data.name,
-          image: data.image,
-          brand: data.brand,
-          genreId: data.genreId,
-          genre: data.genre,
-          url: data.url,
-          lastHitUrl: data.lastHitUrl,
-        });
-      });
-    });
-  },
   /**
    * yahooの商品を表示するメソッド
    * @param state - yahooの商品リスト
@@ -576,6 +380,38 @@ const mutations = {
    * ページ数と商品数の表示
    * @param state
    * @param payload
+   */
+  async getProductList(context: any) {
+    state.rktProductList = [];
+    if (state.results !== 0) {
+      console.log(state.results);
+      state.options = ["&results=" + state.results];
+    }
+
+    const appId = "dj00aiZpPUZjMGkxU0RBUnlodCZzPWNvbnN1bWVyc2VjcmV0Jng9YmE-";
+    try {
+      const response = await axios.get(
+        "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=" +
+          appId +
+          "&query=" +
+          state.inputValue +
+          state.options +
+          "&start=" +
+          state.start
+      );
+      const payload = response.data.hits;
+      console.log(payload);
+
+      context.commit("showProductList", payload);
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  },
+  /**
+   * ページ数を表示
+   * @param state
+   * @param payload
+   * @returns
    */
   handlePageNum(state: any, payload: any) {
     if (state.searchOption === "yahoo") {
