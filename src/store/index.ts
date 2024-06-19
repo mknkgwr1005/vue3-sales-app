@@ -106,8 +106,6 @@ const actions = {
 
         // 新しく取得したデータの先頭と、登録している商品のURLが違うときに速報に表示する
         if (newUrl && newUrl !== registeredUrl) {
-          console.log("入荷");
-
           // 速報に表示する commit
           const commonProduct =
             searchOption === "yahoo"
@@ -127,6 +125,7 @@ const actions = {
                   reviewCount: nowData.reviewCount,
                   reviewAverage: nowData.reviewAverage,
                 };
+          console.log(commonProduct);
 
           context.commit("showNewArriveData", commonProduct);
         }
@@ -372,7 +371,12 @@ const mutations = {
     // データの重複をチェック
     const registerDataCollection = collection(db, "registerData");
     const querySnapshot = await getDocs(
-      query(registerDataCollection, where("url", "==", payload.url))
+      query(
+        registerDataCollection,
+        where("name", "==", payloadData.name),
+        where("genreId", "==", payloadData.genreId),
+        where("url", "==", payloadData.url)
+      )
     );
 
     if (!querySnapshot.empty) {
